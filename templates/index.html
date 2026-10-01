@@ -2295,9 +2295,10 @@
       }
     }
     @media (max-width: 720px) {
-      .shell { display: block; }
+      .shell { display: block; overflow-x: hidden; }
       .sidebar { display: none; }
-      .main { padding: 0 14px 90px; }
+      .main { padding: 0 14px 90px; max-width: 100%; overflow-x: hidden; }
+      .feed { max-width: 100%; overflow-x: hidden; }
       .topbar { min-height: 67px; gap: 10px; }
       .tabs { gap: 17px; }
       .tab { padding: 23px 0; font-size: 12px; }
@@ -2342,6 +2343,204 @@
       .form-row { grid-template-columns: 1fr; }
       .modal-body { padding: 20px; }
       .lock-card { padding: 23px; }
+
+      /* Yorum Modalı ve Yorum Listesi Mobil Uyumluluk */
+      dialog#modal {
+        width: calc(100vw - 20px) !important;
+        max-width: 480px !important;
+        max-height: 85dvh !important;
+        border-radius: 20px !important;
+        margin: auto !important;
+      }
+      .modal-head {
+        padding: 14px 16px !important;
+      }
+      .modal-body {
+        padding: 14px 16px !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
+      .comment-list {
+        max-height: 38dvh !important;
+        margin-bottom: 12px !important;
+        overflow-x: hidden !important;
+      }
+      .comment-replies-wrap {
+        margin-left: 12px !important;
+        padding-left: 8px !important;
+      }
+      .comment-as-user-bar {
+        padding: 6px 10px !important;
+        gap: 6px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .comment-as-user-badge {
+        font-size: 10px !important;
+      }
+      .comment-as-select {
+        font-size: 11.5px !important;
+        padding: 5px 24px 5px 8px !important;
+      }
+      .lightbox-comment-form-wrap {
+        padding: 10px 14px !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 10 !important;
+        background: #111119 !important;
+        border-top: 1px solid var(--line) !important;
+      }
+      .lightbox-comments-wrap {
+        padding: 12px 14px !important;
+      }
+
+      /* Yönetim Paneli (Studio) Mobil Uyumluluk */
+      .studio-container {
+        gap: 14px;
+        margin-bottom: 24px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+      .studio-hero {
+        padding: 16px 14px;
+        border-radius: 16px;
+        gap: 14px;
+      }
+      .studio-hero-main {
+        min-width: 0;
+        width: 100%;
+      }
+      .studio-hero h2 {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+      .studio-hero p {
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .studio-stats-row {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .studio-stat-card {
+        min-width: 0;
+        padding: 8px 4px;
+        border-radius: 10px;
+      }
+      .studio-stat-num {
+        font-size: 17px;
+      }
+      .studio-stat-lbl {
+        font-size: 9.5px;
+      }
+      .studio-nav {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        padding: 4px;
+        border-radius: 12px;
+        overflow-x: visible;
+      }
+      .studio-tab-btn {
+        flex: none;
+        padding: 8px 4px;
+        font-size: 11px;
+        gap: 4px;
+        flex-direction: column;
+        text-align: center;
+        white-space: normal;
+        line-height: 1.2;
+        border-radius: 8px;
+      }
+      .studio-tab-btn svg {
+        width: 17px;
+        height: 17px;
+      }
+      .studio-panel {
+        padding: 14px 12px;
+        border-radius: 16px;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      .studio-manage-head {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      .studio-manage-head h3 {
+        font-size: 15px;
+      }
+      .studio-posts-grid {
+        gap: 10px;
+      }
+      .studio-post-card {
+        padding: 10px;
+        gap: 10px;
+        border-radius: 14px;
+        align-items: flex-start;
+      }
+      .studio-post-thumb {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+      }
+      .studio-post-author strong {
+        font-size: 11.5px;
+      }
+      .studio-post-caption {
+        font-size: 12px;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .studio-post-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .studio-post-date {
+        font-size: 10.5px;
+      }
+      .studio-post-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+      }
+      .studio-post-actions .btn {
+        padding: 6px 8px;
+        font-size: 11.5px;
+        justify-content: center;
+        height: 32px;
+      }
+      .studio-notice {
+        padding: 10px 12px;
+        font-size: 11.5px;
+        gap: 8px;
+      }
+      .studio-notice svg {
+        width: 16px;
+        height: 16px;
+      }
+      .dropzone {
+        padding: 16px 10px;
+        min-height: 130px;
+      }
+      .avatar-dropzone {
+        padding: 12px;
+        gap: 12px;
+      }
+      .avatar-dropzone-circle {
+        width: 56px;
+        height: 56px;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
@@ -2798,9 +2997,9 @@
                     </div>
                   </div>
                 ` : ""}
-                <div style="display:flex;gap:8px;">
-                  <input id="lightboxCommentInput" name="body" placeholder="Yorum yaz..." required maxlength="500" style="padding:9px 12px;font-size:12.5px;" autocomplete="off">
-                  <button class="btn primary small" type="submit">Gönder</button>
+                <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
+                  <input id="lightboxCommentInput" name="body" placeholder="Yorum yaz..." required maxlength="500" style="padding:9px 12px;font-size:12.5px;flex:1;min-width:0;box-sizing:border-box;" autocomplete="off">
+                  <button class="btn primary small" type="submit" style="flex-shrink:0;">Gönder</button>
                 </div>
               </form>
             ` : `
@@ -2912,12 +3111,34 @@
         map.set(c.id, { ...c, replies: [] });
       });
 
+      // Herhangi bir alt yorumun bağlı olduğu ana (kök) yorumu bulur
+      function findRootId(id) {
+        let curr = map.get(id);
+        const visited = new Set();
+        while (curr && curr.parent_id && map.has(curr.parent_id)) {
+          if (visited.has(curr.id)) break;
+          visited.add(curr.id);
+          curr = map.get(curr.parent_id);
+        }
+        return curr ? curr.id : id;
+      }
+
+      // 1. Kök (ana) yorumları topla
       comments.forEach(c => {
-        const item = map.get(c.id);
+        if (!c.parent_id || !map.has(c.parent_id)) {
+          roots.push(map.get(c.id));
+        }
+      });
+
+      // 2. Tüm yanıtları (yanıtın yanıtı dahil) doğru ana yorumun altına ekle
+      comments.forEach(c => {
         if (c.parent_id && map.has(c.parent_id)) {
-          map.get(c.parent_id).replies.push(item);
-        } else {
-          roots.push(item);
+          const item = map.get(c.id);
+          const rootId = findRootId(c.parent_id);
+          const rootItem = map.get(rootId);
+          if (rootItem && rootItem.id !== c.id) {
+            rootItem.replies.push(item);
+          }
         }
       });
 
@@ -2927,18 +3148,20 @@
     function renderCommentItem(c, target, postId, isReply = false) {
       const isOwnerOrAdmin = (state.me?.is_admin || state.me?.id === c.user_id);
       return `
-        <div class="comment ${isReply ? 'comment-reply' : ''}" style="padding:${isReply ? '3px 0' : '7px 0'};display:flex;gap:${isReply ? '7px' : '9px'};align-items:flex-start;">
+        <div class="comment ${isReply ? 'comment-reply' : ''}" style="padding:${isReply ? '4px 0' : '8px 0'};display:flex;gap:${isReply ? '7px' : '9px'};align-items:flex-start;width:100%;box-sizing:border-box;">
           ${avatar(c, isReply ? "mini" : "")}
           <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden;">
-              <strong style="font-size:${isReply ? '11.5px' : '12px'};color:#f4f4f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</strong>
-              ${c.reply_to_username ? `
-                <span class="comment-reply-arrow">›</span>
-                <span class="comment-reply-badge">@${esc(c.reply_to_username)}</span>
-              ` : `
-                <small style="font-size:10px;color:var(--muted);white-space:nowrap;">@${esc(c.username)}</small>
-              `}
-              <small style="font-size:10px;color:var(--muted);white-space:nowrap;margin-left:auto;">${esc(c.created_at?.slice(0, 10) || "")}</small>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;width:100%;">
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0;flex:1;">
+                <strong style="font-size:${isReply ? '11.5px' : '12px'};color:#f4f4f5;line-height:1.2;">${esc(c.name)}</strong>
+                ${c.reply_to_username ? `
+                  <span class="comment-reply-arrow" style="font-size:10px;">›</span>
+                  <span class="comment-reply-badge" style="font-size:10px;">@${esc(c.reply_to_username)}</span>
+                ` : `
+                  <small style="font-size:10px;color:var(--muted);">@${esc(c.username)}</small>
+                `}
+                <small style="font-size:10px;color:var(--muted);margin-left:2px;">${esc(c.created_at?.slice(0, 10) || "")}</small>
+              </div>
               <div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">
                 ${state.me ? `
                   <button class="comment-reply-btn" data-action="reply-comment" data-id="${c.id}" data-username="${esc(c.username)}" data-target="${target}">
@@ -2952,7 +3175,7 @@
                 ` : ""}
               </div>
             </div>
-            <p style="margin:2px 0 0;font-size:${isReply ? '12px' : '12.5px'};color:#e4e4e7;line-height:1.4;">${esc(c.body)}</p>
+            <p style="margin:3px 0 0;font-size:${isReply ? '12px' : '12.5px'};color:#e4e4e7;line-height:1.4;word-break:break-word;overflow-wrap:anywhere;">${esc(c.body)}</p>
           </div>
         </div>
       `;
@@ -3172,7 +3395,7 @@
       $("#communityStats").innerHTML = `
         <div class="topic"><strong>${count(state.profiles.length)} profil</strong><small>Topluluğun üyeleri</small></div>
         <div class="topic"><strong>${count(state.posts.length)} paylaşım</strong><small>Fotoğraf ve video içerikleri</small></div>
-        <div class="topic"><strong>${count(state.posts.filter(p => p.premium).length)} özel içerik</strong><small>Demo erişim ile açılır</small></div>
+        <div class="topic"><strong>${count(state.posts.filter(p => p.premium).length)} özel içerik</strong><small>Özel kilitli içerikler</small></div>
       `;
 
       $("#profileBanner").innerHTML = "";
@@ -3262,7 +3485,7 @@
              <button class="btn primary" data-action="unlock" data-id="${post.id}">
                ${icon("lock")} ${money(post.price)} ile aç
              </button>
-             <small>Demo ödeme. Gerçek ücret alınmaz.</small>
+             <small>Tek seferlik kilit açma</small>
            </div>`
         : post.kind === "video"
           ? `<video src="${esc(post.media)}" loop muted playsinline preload="metadata"
@@ -3364,7 +3587,7 @@
           ` : ""}
           <label>Kullanıcı adı
             <input name="username" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]+"
-              required autocomplete="username" placeholder="kullanici_adi">
+              required autocomplete="username" placeholder="Kullanıcı adı">
           </label>
           <label>Şifre
             <input name="password" type="password" required
@@ -3372,7 +3595,6 @@
               placeholder="Şifren">
           </label>
           <button class="btn primary full" type="submit">${mode === "login" ? "Giriş yap" : "Hesap oluştur"}</button>
-          <small>Demo platform. Ödeme ekranlarında kart bilgisi istenmez.</small>
         </form>
       `);
     }
@@ -3384,16 +3606,15 @@
       if (!post.locked) return toast("Bu içeriğe zaten erişimin var.");
 
       openModal("Özel içerik erişimi", `
-        <span class="pill">ÖDEME SİMÜLASYONU</span>
-        <div class="checkout-price">${money(post.price)} <small>/ bu içerik</small></div>
+        <span class="pill">ÖZEL İÇERİK</span>
+        <div class="checkout-price">${money(post.price)} <small>/ tek seferlik erişim</small></div>
         <div class="notice">
-          <strong>Gerçek ödeme yapılmaz.</strong><br>
-          Bu tutar yalnızca arayüz demosudur. Kart bilgisi toplanmaz,
-          hesabından para çekilmez ve abonelik başlatılmaz.
+          <strong>Özel İçerik Erişimi</strong><br>
+          Bu içeriğin kilidini açarak fotoğraf ve videoları hemen görüntüleyebilirsiniz.
         </div>
-        <p class="muted">Onayladığında bu hesaba, seçili içeriği görüntüleme izni verilir.</p>
+        <p class="muted">Onayladığında bu hesaba, seçili içeriği tam görüntüleme izni verilir.</p>
         <button class="btn primary full" data-action="confirm-unlock" data-id="${id}">
-          ${icon("lock")} Demo ödemeyi onayla ve aç
+          ${icon("lock")} İçerik Kilidini Aç
         </button>
       `);
     }
@@ -3418,11 +3639,11 @@
           ${renderThreadedComments(comments, "modal", postId)}
         </div>
         ${state.me ? `
-          <form id="commentForm" class="form" style="gap:10px;">
+          <form id="commentForm" class="form" style="gap:8px;width:100%;box-sizing:border-box;">
             <div id="modalReplyBarWrap"></div>
             ${state.me.is_admin ? `
-              <div class="comment-as-user-bar">
-                <span class="comment-as-user-badge">${icon("user")} Yorum Sahibi:</span>
+              <div class="comment-as-user-bar" style="width:100%;box-sizing:border-box;">
+                <span class="comment-as-user-badge">${icon("user")} Profil:</span>
                 <div class="comment-as-select-wrap">
                   <select name="as_user_id" class="comment-as-select">
                     ${state.profiles.map(u => `<option value="${u.id}" ${u.id === state.me.id ? "selected" : ""}>${esc(u.name)} (@${esc(u.username)})</option>`).join("")}
@@ -3431,10 +3652,10 @@
                 </div>
               </div>
             ` : ""}
-            <label style="display:grid;gap:6px;font-size:12.5px;color:#d4d4d8;">Yorumun
-              <textarea id="commentFormBody" name="body" required maxlength="500" placeholder="Sohbete katıl..." style="min-height:75px;"></textarea>
-            </label>
-            <button class="btn primary" type="submit">Yorumu gönder</button>
+            <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+              <textarea id="commentFormBody" name="body" required maxlength="500" placeholder="Bir yorum yaz..." style="width:100%;box-sizing:border-box;min-height:68px;max-height:130px;padding:10px 12px;font-size:13px;border-radius:12px;resize:vertical;"></textarea>
+              <button class="btn primary full" type="submit" style="height:38px;font-size:13px;font-weight:600;">Yorumu Gönder</button>
+            </div>
           </form>
         ` : '<button class="btn primary full" data-action="login">Yorum yazmak için giriş yap</button>'}
       `;
@@ -3563,7 +3784,7 @@
                       </div>
                       <p class="studio-post-caption">${esc(post.caption || "Açıklama belirtilmemiş")}</p>
                       <div class="studio-post-footer">
-                        <span class="studio-post-date">${esc(post.created_at?.slice(0, 10) || "")} · ${post.premium ? money(post.price) + " (Demo Özel)" : "Ücretsiz"}</span>
+                        <span class="studio-post-date">${esc(post.created_at?.slice(0, 10) || "")} · ${post.premium ? money(post.price) + " (Özel)" : "Ücretsiz"}</span>
                         <div class="studio-post-actions">
                           <button class="btn small ghost" data-action="preview" data-id="${post.id}" title="Büyük Önizleme">
                             ${icon("expand")} Önizle
@@ -3638,7 +3859,7 @@
                 <label class="switch-row" for="premiumInput">
                   <div class="switch-text">
                     <strong class="switch-title">Özel İçerik Olarak Kilitle</strong>
-                    <small class="muted" style="font-size: 11.5px;">Sadece demo erişimi açan takipçiler tam medyayı görebilir.</small>
+                    <small class="muted" style="font-size: 11.5px;">Sadece kilidi açan takipçiler tam medyayı görebilir.</small>
                   </div>
                   <div class="switch-toggle">
                     <input type="checkbox" id="premiumInput" name="premium" value="1" class="switch-input">
@@ -3647,12 +3868,12 @@
                 </label>
 
                 <div id="priceField" class="hidden" style="padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1);">
-                  <label style="margin: 0;">Demo Erişim Ücreti (TL)
+                  <label style="margin: 0;">Erişim Ücreti (TL)
                     <div style="position: relative; display: flex; align-items: center; margin-top: 6px;">
                       <span style="position: absolute; left: 14px; font-weight: 700; color: var(--pink);">₺</span>
                       <input type="number" name="price" value="49" min="1" max="100000" step="1" required style="padding-left: 32px;">
                     </div>
-                    <small class="muted" style="margin-top: 4px; display: block;">Bu tutar ödeme simülasyonunda gösterilir; gerçek kart işlemi yapılmaz.</small>
+                    <small class="muted" style="margin-top: 4px; display: block;">İçeriğin kilidini açmak için belirlenen ücret.</small>
                   </label>
                 </div>
               </div>
@@ -3713,6 +3934,20 @@
 
           <div class="studio-body">
             ${tabContent}
+          </div>
+
+          <div class="studio-reset-card" style="margin-top: 24px; padding: 18px 20px; background: rgba(244, 63, 94, 0.05); border: 1px solid rgba(244, 63, 94, 0.22); border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 240px;">
+              <div style="display:flex; align-items:center; gap:8px; color: var(--pink); font-weight: 750; font-size: 13.5px; margin-bottom: 3px;">
+                ${icon("trash")} Sistemi ve Veritabanını Sıfırla
+              </div>
+              <p class="muted" style="font-size: 12px; margin: 0; line-height: 1.45;">
+                Tüm profilleri, paylaşımları, yorumları ve sunucudaki yüklenmiş resim/video dosyalarını kalıcı olarak temizler. Projeyi ilk çalıştırdığınız tertemiz başlangıç durumuna döndürür.
+              </p>
+            </div>
+            <button class="btn danger" data-action="reset-system" style="white-space: nowrap; height: 38px; padding: 0 16px; font-weight: 700; font-size: 13px;">
+              ${icon("trash")} Tümünü Sıfırla
+            </button>
           </div>
         </div>
       `;
@@ -4040,7 +4275,7 @@
         });
 
         if (post.locked) {
-          toast("Bu özel paylaşımı görmek için demo erişimi aç.");
+          toast("Bu özel paylaşımı görmek için kilidi aç.");
         }
       });
     }
@@ -4140,6 +4375,26 @@
 
           case "clear-media-file":
             clearMediaSelection();
+            break;
+
+          case "reset-system":
+            if (!needLogin()) return;
+            if (!state.me?.is_admin) {
+              toast("Bu işlem yalnızca yönetici yetkisi gerektirir.");
+              return;
+            }
+            if (!window.confirm("DİKKAT: Veritabanındaki tüm profiller, paylaşımlar, beğeniler, yorumlar ve tüm medya dosyaları kalıcı olarak silinecektir!\n\nSistemi ilk kurulum durumuna sıfırlamak istediğine emin misin?")) {
+              return;
+            }
+            await runAction("reset-system", button, async () => {
+              const res = await api("/api/admin/reset-db", {
+                method: "POST",
+                data: {}
+              });
+              toast(res.message || "Tüm veritabanı ve medyalar sıfırlandı.");
+              await loadState();
+              navigate("home");
+            });
             break;
 
           case "logout":
@@ -4242,13 +4497,13 @@
 
             await runAction(`unlock:${id}`, button, async () => {
               const originalHTML = button.innerHTML;
-              button.textContent = "Demo erişim açılıyor...";
+              button.textContent = "Kilit açılıyor...";
 
               try {
                 const result = await api(`/api/unlock/${id}`, {
                   method: "POST",
                   data: {
-                    confirm_simulation: true
+                    confirm: true
                   }
                 });
 
@@ -4256,7 +4511,7 @@
                 await loadState(true);
 
                 toast(
-                  result.message || "Demo erişim açıldı. Para çekilmedi."
+                  result.message || "İçeriğin kilidi başarıyla açıldı."
                 );
 
                 requestAnimationFrame(() => {
