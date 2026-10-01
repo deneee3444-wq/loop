@@ -12,24 +12,38 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
+try:
+    import psycopg2
+    import psycopg2.extras
+    PG_AVAILABLE = True
+except ImportError:
+    PG_AVAILABLE = False
+
 BASE = Path(__file__).resolve().parent
 DATA = BASE / "data"
 UPLOADS = DATA / "uploads"
 DATA.mkdir(exist_ok=True)
 UPLOADS.mkdir(exist_ok=True)
 
-SECRET_FILE = DATA / ".secret"
-if not SECRET_FILE.exists():
-    SECRET_FILE.write_text(secrets.token_hex(32), encoding="utf-8")
-    try:
-        SECRET_FILE.chmod(0o600)
-    except OSError:
-        pass
+# ==============================================================================
+# VERİTABANI BAĞLANTISI (İstediğinde connection string'ini buraya yazabilirsin)
+# Boş bırakırsan ("") -> Mevcut yerel SQLite (data/social.db) çalışır.
+# Başında postgresql:// veya postgres:// varsa -> Otomatik algılayıp PostgreSQL'e bağlanır.
+# Örnek: DATABASE_URL = "postgresql://kullanici:sifre@ep-xyz.neon.tech/neondb?sslmode=require"
+# ==============================================================================
+DATABASE_URL = ""
+
+
+def is_postgres():
+    url = (DATABASE_URL or "").strip()
+    return url.startswith(("postgres://", "postgresql://"))
+
+
+INTEGRITY_ERRORS = (sqlite3.IntegrityError, psycopg2.IntegrityError) if PG_AVAILABLE else (sqlite3.IntegrityError,)
 
 app = Flask(__name__, template_folder=str(BASE / "templates"))
 app.config.update(
-    SECRET_KEY=os.environ.get("SECRET_KEY")
-    or SECRET_FILE.read_text(encoding="utf-8"),
+    SECRET_KEY=os.environ.get("SECRET_KEY", "loop-social-media-secure-key-2026"),
     MAX_CONTENT_LENGTH=100 * 1024 * 1024,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
@@ -38,11 +52,126 @@ app.config.update(
 )
 
 
+def _format_pg_row(row):
+    """PostgreSQL satırlarındaki datetime değerlerini ISO/string formatına dönüştürür."""
+    if not isinstance(row, dict):
+        return row
+    res = {}
+    for k, v in row.items():
+        if hasattr(v, "strftime"):
+            res[k] = v.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            res[k] = v
+    return res
+
+
+class PgCursorWrapper:
+    def __init__(self, cursor, conn):
+        self._cur = cursor
+        self._conn = conn
+        self.lastrowid = None
+
+    def execute(self, query, params=None):
+        q = query.strip()
+        # SQLite'a özgü BEGIN IMMEDIATE komutu PostgreSQL'de no-op
+        if q.upper().startswith("BEGIN IMMEDIATE"):
+            return self
+
+        # SQLite parametre işaretçisi '?' -> PostgreSQL '%s'
+        q = q.replace("?", "%s")
+
+        # INSERT OR IGNORE INTO -> PostgreSQL ON CONFLICT DO NOTHING dönüşümü
+        if "INSERT OR IGNORE INTO" in q.upper():
+            q = re.sub(r"INSERT\s+OR\s+IGNORE\s+INTO\s+", "INSERT INTO ", q, flags=re.IGNORECASE)
+            if "ON CONFLICT" not in q.upper():
+                q += " ON CONFLICT DO NOTHING"
+
+        # Otomatik lastrowid desteği: RETURNING id ekle
+        is_insert = q.upper().startswith("INSERT INTO")
+        has_returning = "RETURNING" in q.upper()
+        if is_insert and not has_returning and any(tbl in q.lower() for tbl in ("users", "posts", "comments")):
+            q += " RETURNING id"
+            if params is not None:
+                self._cur.execute(q, params)
+            else:
+                self._cur.execute(q)
+            try:
+                row = self._cur.fetchone()
+                if row:
+                    self.lastrowid = row.get("id") if isinstance(row, dict) else row[0]
+            except Exception:
+                pass
+            return self
+
+        if params is not None:
+            self._cur.execute(q, params)
+        else:
+            self._cur.execute(q)
+        return self
+
+    def fetchone(self):
+        row = self._cur.fetchone()
+        return _format_pg_row(row) if row else None
+
+    def fetchall(self):
+        rows = self._cur.fetchall()
+        return [_format_pg_row(r) for r in rows] if rows else []
+
+    def __iter__(self):
+        for r in self._cur:
+            yield _format_pg_row(r)
+
+
+class PgConnectionWrapper:
+    def __init__(self, raw_conn):
+        self._conn = raw_conn
+
+    def execute(self, query, params=None):
+        cur = self.cursor()
+        return cur.execute(query, params)
+
+    def cursor(self):
+        return PgCursorWrapper(
+            self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor),
+            self._conn,
+        )
+
+    def commit(self):
+        self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+    def close(self):
+        self._conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.rollback()
+        else:
+            self.commit()
+
+
 def db():
     if "db" not in g:
-        g.db = sqlite3.connect(DATA / "social.db", timeout=20)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
+        if is_postgres():
+            if not PG_AVAILABLE:
+                raise RuntimeError("PostgreSQL bağlantısı için psycopg2 gereklidir: pip install psycopg2-binary")
+            dsn = (DATABASE_URL or "").strip()
+            if dsn.startswith("postgres://"):
+                dsn = "postgresql://" + dsn[len("postgres://"):]
+            if "sslmode" not in dsn:
+                separator = "&" if "?" in dsn else "?"
+                dsn += f"{separator}sslmode=require"
+            raw_conn = psycopg2.connect(dsn)
+            g.db = PgConnectionWrapper(raw_conn)
+        else:
+            g.db = sqlite3.connect(DATA / "social.db", timeout=20)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
 
 
@@ -54,78 +183,155 @@ def close_db(_error):
 
 
 def init_db():
-    db().executescript("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
-        username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-        name TEXT NOT NULL,
-        bio TEXT NOT NULL DEFAULT '',
-        avatar TEXT,
-        password TEXT NOT NULL,
-        is_admin INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+    if is_postgres():
+        conn = db()
+        with conn:
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                bio TEXT NOT NULL DEFAULT '',
+                avatar TEXT,
+                password TEXT NOT NULL,
+                is_admin INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
 
-    CREATE TABLE IF NOT EXISTS posts (
-        id INTEGER PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        caption TEXT NOT NULL,
-        media TEXT NOT NULL UNIQUE,
-        kind TEXT NOT NULL,
-        premium INTEGER NOT NULL DEFAULT 0,
-        price INTEGER NOT NULL DEFAULT 49,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+            CREATE TABLE IF NOT EXISTS posts (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                caption TEXT NOT NULL,
+                media TEXT NOT NULL UNIQUE,
+                kind TEXT NOT NULL,
+                premium INTEGER NOT NULL DEFAULT 0,
+                price INTEGER NOT NULL DEFAULT 49,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
 
-    CREATE TABLE IF NOT EXISTS likes (
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
-        PRIMARY KEY (user_id, post_id)
-    );
+            CREATE TABLE IF NOT EXISTS likes (
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+                PRIMARY KEY (user_id, post_id)
+            );
 
-    CREATE TABLE IF NOT EXISTS saves (
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
-        PRIMARY KEY (user_id, post_id)
-    );
+            CREATE TABLE IF NOT EXISTS saves (
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+                PRIMARY KEY (user_id, post_id)
+            );
 
-    CREATE TABLE IF NOT EXISTS follows (
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        target_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        PRIMARY KEY (user_id, target_id),
-        CHECK (user_id != target_id)
-    );
+            CREATE TABLE IF NOT EXISTS follows (
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                target_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                PRIMARY KEY (user_id, target_id),
+                CHECK (user_id != target_id)
+            );
 
-    CREATE TABLE IF NOT EXISTS comments (
-        id INTEGER PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-        parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
-        body TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+                body TEXT NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
 
-    CREATE TABLE IF NOT EXISTS unlocks (
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
-        amount INTEGER NOT NULL,
-        payment_mode TEXT NOT NULL DEFAULT 'simulation',
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, post_id)
-    );
+            CREATE TABLE IF NOT EXISTS unlocks (
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+                amount INTEGER NOT NULL,
+                payment_mode TEXT NOT NULL DEFAULT 'simulation',
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, post_id)
+            );
 
-    CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
-    CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
-    CREATE INDEX IF NOT EXISTS idx_likes_post ON likes(post_id);
-    CREATE INDEX IF NOT EXISTS idx_follows_target ON follows(target_id);
-    """)
+            CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
+            CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
+            CREATE INDEX IF NOT EXISTS idx_likes_post ON likes(post_id);
+            CREATE INDEX IF NOT EXISTS idx_follows_target ON follows(target_id);
+            CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
+            """)
 
-    comment_cols = [c["name"] for c in db().execute("PRAGMA table_info(comments)").fetchall()]
-    if "parent_id" not in comment_cols:
-        db().execute("ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL")
+            cur = conn.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'comments' AND column_name = 'parent_id'
+            """)
+            if not cur.fetchone():
+                conn.execute("ALTER TABLE comments ADD COLUMN parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE")
+    else:
+        db().executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            name TEXT NOT NULL,
+            bio TEXT NOT NULL DEFAULT '',
+            avatar TEXT,
+            password TEXT NOT NULL,
+            is_admin INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            caption TEXT NOT NULL,
+            media TEXT NOT NULL UNIQUE,
+            kind TEXT NOT NULL,
+            premium INTEGER NOT NULL DEFAULT 0,
+            price INTEGER NOT NULL DEFAULT 49,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS likes (
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, post_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS saves (
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, post_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS follows (
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            target_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, target_id),
+            CHECK (user_id != target_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+            parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+            body TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS unlocks (
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+            amount INTEGER NOT NULL,
+            payment_mode TEXT NOT NULL DEFAULT 'simulation',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, post_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
+        CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
+        CREATE INDEX IF NOT EXISTS idx_likes_post ON likes(post_id);
+        CREATE INDEX IF NOT EXISTS idx_follows_target ON follows(target_id);
+        """)
+
+        comment_cols = [c["name"] for c in db().execute("PRAGMA table_info(comments)").fetchall()]
+        if "parent_id" not in comment_cols:
+            db().execute("ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL")
+            db().commit()
+        db().execute("CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id)")
         db().commit()
-    db().execute("CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id)")
-    db().commit()
 
     admin_row = db().execute(
         "SELECT id FROM users WHERE username = 'admin'"
@@ -149,7 +355,9 @@ def init_db():
         )
         db().commit()
 
+    db_type_desc = f"PostgreSQL ({DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else 'Remote'})" if is_postgres() else "SQLite (data/social.db)"
     print("\n" + "=" * 55)
+    print(f"AKTİF VERİTABANI: {db_type_desc}")
     print("VARSAYILAN YÖNETİCİ HESABI")
     print("Kullanıcı adı: admin")
     print("Şifre: 123")
@@ -355,7 +563,7 @@ def create_user(data, avatar=None):
         )
         db().commit()
         return cursor.lastrowid
-    except sqlite3.IntegrityError:
+    except INTEGRITY_ERRORS:
         db().rollback()
         abort(400, description="Bu kullanıcı adı zaten kullanılıyor.")
 
@@ -467,9 +675,6 @@ def logout():
 @require_login
 def unlock(post_id):
     post = get_post(post_id)
-    if payload().get("confirm_simulation") is not True:
-        abort(400, description="Simülasyon onayı gerekli.")
-
     if post["premium"]:
         db().execute(
             """INSERT OR IGNORE INTO unlocks(user_id, post_id, amount)
@@ -478,7 +683,7 @@ def unlock(post_id):
         )
         db().commit()
 
-    return jsonify(ok=True, message="Demo erişim açıldı. Para çekilmedi.")
+    return jsonify(ok=True, message="İçeriğin kilidi başarıyla açıldı.")
 
 
 @app.post("/api/post/<int:post_id>/<action>")
@@ -675,6 +880,45 @@ def delete_post(post_id):
     db().commit()
     (UPLOADS / post["media"]).unlink(missing_ok=True)
     return jsonify(ok=True)
+
+
+@app.post("/api/admin/reset-db")
+@require_admin
+def reset_db():
+    # 1. Sunucudaki tüm medya dosyalarını sil
+    if UPLOADS.exists():
+        for f in UPLOADS.iterdir():
+            if f.is_file():
+                try:
+                    f.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    # 2. Veritabanındaki tüm tabloları kaldır
+    tables = ["unlocks", "comments", "follows", "saves", "likes", "posts", "users"]
+    connection = db()
+    if is_postgres():
+        with connection:
+            for tbl in tables:
+                connection.execute(f"DROP TABLE IF EXISTS {tbl} CASCADE")
+    else:
+        connection.execute("PRAGMA foreign_keys = OFF")
+        for tbl in tables:
+            connection.execute(f"DROP TABLE IF EXISTS {tbl}")
+        connection.commit()
+        connection.execute("PRAGMA foreign_keys = ON")
+
+    # 3. Şemayı ve varsayılan yönetici hesabını ilk günkü gibi yeniden kur
+    init_db()
+
+    # 4. Admin oturumunu yenilenen admin kullanıcısına bağla
+    admin_user = db().execute("SELECT id FROM users WHERE username = 'admin'").fetchone()
+    if admin_user:
+        session["uid"] = admin_user["id"]
+        g.current_user = admin_user
+
+    return jsonify(ok=True, message="Tüm veritabanı ve yüklenen medyalar sıfırlandı. Proje ilk kurulum haline getirildi.")
+
 
 
 @app.get("/media/<filename>")
