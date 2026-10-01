@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#09090b">
   <meta name="csrf-token" content="{{ csrf_token }}">
   <title>LOOP - Sana ait bir akış</title>
@@ -36,14 +36,26 @@
     ::-webkit-scrollbar-thumb:hover { background: #3f3f50; }
     * { scrollbar-width: thin; scrollbar-color: #272733 #09090b; }
 
+    html {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 100%;
       background: radial-gradient(circle 900px at 50% -150px, rgba(139, 92, 246, 0.12), transparent 70%), var(--bg);
       color: var(--text);
       font: 14px/1.5 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+      position: relative;
     }
     button, input, textarea, select { font: inherit; outline: none !important; }
     button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
@@ -1755,6 +1767,8 @@
       position: fixed;
       inset: 0;
       margin: auto;
+      padding: 0 !important;
+      box-sizing: border-box !important;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -1969,6 +1983,28 @@
       border-top: 1px solid var(--line);
       flex-shrink: 0;
       background: #111119;
+    }
+    .lightbox-input-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      align-items: center;
+    }
+    #lightboxCommentInput {
+      padding: 9px 12px;
+      font-size: 13px;
+      flex: 1;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    .lightbox-floating-close {
+      display: none;
+    }
+    .lightbox-mobile-overlay,
+    .lightbox-mobile-rail,
+    .lightbox-drawer-bar {
+      display: none !important;
     }
 
     /* Share Modal Styles */
@@ -2241,6 +2277,17 @@
       padding: 6px 12px;
       font-size: 11.5px;
       color: #c4b5fd;
+      width: 100%;
+      box-sizing: border-box;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .reply-bar span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
     }
     .reply-bar strong {
       color: #f43f5e;
@@ -2272,26 +2319,460 @@
     }
     @media (max-width: 860px) {
       dialog.lightbox {
-        width: 100vw;
-        height: 100dvh;
-        max-height: 100dvh;
-        border-radius: 0;
-        border: none;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        background: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        inset: 0 !important;
+        position: fixed !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
       }
+      .lightbox-floating-close {
+        display: flex !important;
+        position: fixed !important;
+        top: 14px !important;
+        right: 14px !important;
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 50% !important;
+        background: rgba(0, 0, 0, 0.65) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 100 !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+        transition: transform 0.15s ease, background 0.15s ease !important;
+      }
+      .lightbox-floating-close:active {
+        transform: scale(0.92) !important;
+      }
+      .lightbox-floating-close svg {
+        width: 18px !important;
+        height: 18px !important;
+      }
+
       .lightbox-body {
-        grid-template-columns: 1fr;
-        height: 100%;
-        overflow-y: auto;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100dvh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        overflow-x: hidden !important;
+        position: relative !important;
+        grid-template-columns: none !important;
+        box-sizing: border-box !important;
       }
+
+      /* Media area on mobile */
       .lightbox-media-wrap {
-        height: 48vh;
-        min-height: 280px;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: #000000 !important;
+        transition: height 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        z-index: 10 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
       }
+      .lightbox-media-wrap img,
+      .lightbox-media-wrap video {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+      }
+
+      /* Video controls on mobile */
+      .lightbox-controls {
+        padding: 8px 12px 6px !important;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.75)) !important;
+        gap: 8px !important;
+        z-index: 25 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .lightbox-body:not(.comments-open) .lightbox-controls {
+        bottom: 0 !important;
+        background: transparent !important;
+        padding: 4px 12px !important;
+      }
+      .lightbox-body:not(.comments-open) .lightbox-controls .volume-control .volume-slider-wrap {
+        display: none !important;
+      }
+
+      /* TikTok Mobile Overlay (Author & Caption on bottom-left) */
+      .lightbox-mobile-overlay {
+        display: flex !important;
+        flex-direction: column !important;
+        position: absolute !important;
+        bottom: 38px !important;
+        left: 14px !important;
+        right: 68px !important;
+        max-width: calc(100% - 76px) !important;
+        z-index: 20 !important;
+        gap: 8px !important;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85) !important;
+        transition: opacity 0.25s ease, transform 0.25s ease !important;
+        pointer-events: auto !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+      }
+      .lightbox-mobile-author {
+        display: flex !important;
+        align-items: center !important;
+        gap: 9px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+      }
+      .lightbox-mobile-author-meta {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
+      .lightbox-mobile-author-name {
+        font-size: 13.5px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .lightbox-mobile-author-user {
+        font-size: 11px !important;
+        color: #d4d4d8 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .lightbox-mobile-caption {
+        font-size: 12.5px !important;
+        line-height: 1.4 !important;
+        color: #f4f4f5 !important;
+        margin: 0 !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        word-break: break-word !important;
+      }
+      .lightbox-mobile-sound {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        font-size: 11px !important;
+        color: #e4e4e7 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 100% !important;
+      }
+      .lightbox-mobile-sound svg {
+        width: 13px !important;
+        height: 13px !important;
+        flex-shrink: 0 !important;
+      }
+
+      /* TikTok Mobile Action Rail (Right column buttons) */
+      .lightbox-mobile-rail {
+        display: flex !important;
+        flex-direction: column !important;
+        position: absolute !important;
+        right: 12px !important;
+        bottom: 42px !important;
+        z-index: 22 !important;
+        gap: 15px !important;
+        align-items: center !important;
+        width: 48px !important;
+        max-width: 48px !important;
+        box-sizing: border-box !important;
+        transition: opacity 0.25s ease, transform 0.25s ease !important;
+      }
+      .lightbox-rail-action {
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 4px !important;
+        color: #ffffff !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        transition: transform 0.15s ease !important;
+      }
+      .lightbox-rail-action:active {
+        transform: scale(0.9) !important;
+      }
+      .lightbox-rail-icon {
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+        flex-shrink: 0 !important;
+      }
+      .lightbox-rail-icon svg {
+        width: 21px !important;
+        height: 21px !important;
+      }
+      .lightbox-rail-count {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        color: #f4f4f5 !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
+        white-space: nowrap !important;
+        max-width: 48px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
+        text-align: center !important;
+      }
+      .lightbox-rail-action.on[data-action="like"] .lightbox-rail-icon {
+        background: rgba(244, 63, 94, 0.35) !important;
+        border-color: rgba(244, 63, 94, 0.6) !important;
+        color: #f43f5e !important;
+      }
+      .lightbox-rail-action.on[data-action="like"] svg,
+      .lightbox-rail-action.on[data-action="like"] svg path {
+        fill: #f43f5e !important;
+        stroke: #f43f5e !important;
+      }
+      .lightbox-rail-action.on[data-action="save"] .lightbox-rail-icon {
+        background: rgba(245, 158, 11, 0.35) !important;
+        border-color: rgba(245, 158, 11, 0.6) !important;
+        color: #f59e0b !important;
+      }
+      .lightbox-rail-action.on[data-action="save"] svg,
+      .lightbox-rail-action.on[data-action="save"] svg path {
+        fill: #f59e0b !important;
+        stroke: #f59e0b !important;
+      }
+
+      /* When Comments Sheet is OPEN on mobile */
+      .lightbox-body.comments-open .lightbox-media-wrap {
+        height: 35dvh !important;
+        position: relative !important;
+        inset: auto !important;
+        flex-shrink: 0 !important;
+        cursor: pointer !important;
+      }
+      .lightbox-body.comments-open .lightbox-mobile-overlay,
+      .lightbox-body.comments-open .lightbox-mobile-rail {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: translateY(14px) !important;
+      }
+
+      /* The TikTok Bottom Sheet (Sidebar on mobile) */
       .lightbox-sidebar {
-        border-left: none;
-        border-top: 1px solid var(--line);
-        height: auto;
-        min-height: 400px;
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 65dvh !important;
+        max-height: 72dvh !important;
+        background: #101018fa !important;
+        backdrop-filter: blur(28px) !important;
+        -webkit-backdrop-filter: blur(28px) !important;
+        border-top-left-radius: 20px !important;
+        border-top-right-radius: 20px !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-left: none !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.85) !important;
+        z-index: 70 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        transform: translateY(100%);
+        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+      }
+
+      .lightbox-body.comments-open .lightbox-sidebar {
+        transform: translateY(0) !important;
+        position: relative !important;
+        flex: 1 !important;
+        height: auto !important;
+        max-height: none !important;
+      }
+
+      /* Hide desktop-only sidebar headers & content on mobile */
+      .lightbox-sidebar-head,
+      .lightbox-sidebar-content,
+      .lightbox-actions-row {
+        display: none !important;
+      }
+
+      /* Mobile Drawer Bar */
+      .lightbox-drawer-bar {
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 8px 16px 10px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .lightbox-drawer-pill {
+        width: 36px !important;
+        height: 4px !important;
+        border-radius: 2px !important;
+        background: rgba(255, 255, 255, 0.25) !important;
+        margin: 2px auto 8px !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+      }
+      .lightbox-drawer-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .lightbox-drawer-title {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #f4f4f5 !important;
+      }
+      .lightbox-drawer-title strong {
+        font-size: 13px !important;
+        color: #a1a1aa !important;
+        font-weight: 500 !important;
+      }
+      .lightbox-drawer-close {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: none !important;
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 50% !important;
+        color: #d4d4d8 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: background 0.15s ease !important;
+        flex-shrink: 0 !important;
+      }
+      .lightbox-drawer-close:active {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+      }
+      .lightbox-drawer-close svg {
+        width: 15px !important;
+        height: 15px !important;
+      }
+
+      /* Spacious comment list on mobile */
+      .lightbox-comments-wrap {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding: 14px 16px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      /* Pinned comment form at bottom of sheet */
+      .lightbox-comment-form-wrap {
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) !important;
+        background: #0d0d14 !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+        flex-shrink: 0 !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 10 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+      }
+      #lightboxCommentForm {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+      .lightbox-input-row {
+        display: flex !important;
+        gap: 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        align-items: center !important;
+      }
+      #lightboxCommentInput {
+        width: 0 !important;
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        font-size: 16px !important; /* Prevents auto-zoom on mobile */
+        padding: 9px 12px !important;
+      }
+      .comment-as-user-bar {
+        padding: 6px 10px !important;
+        gap: 6px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+      }
+      .comment-as-user-badge {
+        font-size: 10px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+      }
+      .comment-as-select-wrap {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        display: flex !important;
+      }
+      .comment-as-select {
+        font-size: 12.5px !important;
+        padding: 5px 22px 5px 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        box-sizing: border-box !important;
       }
     }
     @media (max-width: 720px) {
@@ -2346,53 +2827,86 @@
 
       /* Yorum Modalı ve Yorum Listesi Mobil Uyumluluk */
       dialog#modal {
-        width: calc(100vw - 20px) !important;
-        max-width: 480px !important;
+        width: 100% !important;
+        max-width: 100% !important;
         max-height: 85dvh !important;
-        border-radius: 20px !important;
-        margin: auto !important;
+        border-radius: 20px 20px 0 0 !important;
+        margin: auto auto 0 !important;
+        inset: auto 0 0 0 !important;
+        border-bottom: none !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        overflow-x: hidden !important;
       }
       .modal-head {
         padding: 14px 16px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
       }
       .modal-body {
         padding: 14px 16px !important;
+        width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
         overflow-x: hidden !important;
       }
       .comment-list {
-        max-height: 38dvh !important;
+        max-height: 48dvh !important;
         margin-bottom: 12px !important;
         overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
       }
       .comment-replies-wrap {
         margin-left: 12px !important;
         padding-left: 8px !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      #commentForm {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
+      #commentFormBody {
+        font-size: 16px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
       }
       .comment-as-user-bar {
         padding: 6px 10px !important;
         gap: 6px !important;
         width: 100% !important;
+        max-width: 100% !important;
         box-sizing: border-box !important;
+        overflow: hidden !important;
       }
       .comment-as-user-badge {
         font-size: 10px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+      }
+      .comment-as-select-wrap {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        display: flex !important;
       }
       .comment-as-select {
-        font-size: 11.5px !important;
-        padding: 5px 24px 5px 8px !important;
-      }
-      .lightbox-comment-form-wrap {
-        padding: 10px 14px !important;
-        position: sticky !important;
-        bottom: 0 !important;
-        z-index: 10 !important;
-        background: #111119 !important;
-        border-top: 1px solid var(--line) !important;
-      }
-      .lightbox-comments-wrap {
-        padding: 12px 14px !important;
+        font-size: 12.5px !important;
+        padding: 5px 22px 5px 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        box-sizing: border-box !important;
       }
 
       /* Yönetim Paneli (Studio) Mobil Uyumluluk */
@@ -2891,7 +3405,19 @@
       }
     }
 
-    async function openPreviewModal(id) {
+    function toggleLightboxComments(force = null, shouldFocus = false) {
+      const body = $("#previewModalBody");
+      if (!body) return;
+      const isOpen = force !== null ? force : !body.classList.contains("comments-open");
+      body.classList.toggle("comments-open", isOpen);
+      if (isOpen && shouldFocus) {
+        setTimeout(() => {
+          $("#lightboxCommentInput")?.focus();
+        }, 150);
+      }
+    }
+
+    async function openPreviewModal(id, openComments = null) {
       const post = postById(id);
       if (!post) return;
       if (post.locked) {
@@ -2913,6 +3439,45 @@
           ${user?.following ? "Takip ediliyor" : "Takip et"}
         </button>`;
 
+      const mobileOverlayHtml = `
+        <div class="lightbox-mobile-overlay">
+          <div class="lightbox-mobile-author">
+            ${user ? avatar(user, "mini") : ""}
+            <div class="lightbox-mobile-author-meta">
+              <strong class="lightbox-mobile-author-name">${esc(user?.name || "LOOP")}</strong>
+              <small class="lightbox-mobile-author-user">@${esc(user?.username || "")}</small>
+            </div>
+            ${followBtn}
+          </div>
+          ${post.caption ? `<p class="lightbox-mobile-caption">${esc(post.caption)}</p>` : ""}
+          <div class="lightbox-mobile-sound">
+            ${icon(isVideo ? "music" : "image")}
+            <span>${isVideo ? "Orijinal ses" : "Fotoğraf paylaşımı"} · ${esc(user?.name || "LOOP")}</span>
+          </div>
+        </div>
+      `;
+
+      const mobileRailHtml = `
+        <div class="lightbox-mobile-rail">
+          <button class="lightbox-rail-action ${post.liked ? "on" : ""}" data-action="like" data-id="${post.id}" aria-label="Beğen">
+            <span class="lightbox-rail-icon">${icon("heart")}</span>
+            <span class="lightbox-rail-count">${count(post.likes)}</span>
+          </button>
+          <button class="lightbox-rail-action" data-action="toggle-lightbox-comments" data-id="${post.id}" aria-label="Yorumlar">
+            <span class="lightbox-rail-icon">${icon("comment")}</span>
+            <span class="lightbox-rail-count">${count(post.comments)}</span>
+          </button>
+          <button class="lightbox-rail-action ${post.saved ? "on" : ""}" data-action="save" data-id="${post.id}" aria-label="Kaydet">
+            <span class="lightbox-rail-icon">${icon("bookmark")}</span>
+            <span class="lightbox-rail-count">${post.saved ? "Kayıtlı" : "Kaydet"}</span>
+          </button>
+          <button class="lightbox-rail-action" data-action="share" data-id="${post.id}" aria-label="Paylaş">
+            <span class="lightbox-rail-icon">${icon("share")}</span>
+            <span class="lightbox-rail-count">Paylaş</span>
+          </button>
+        </div>
+      `;
+
       const mediaHtml = isVideo ? `
         <div class="lightbox-media-wrap">
           <video id="lightboxVideo" src="${esc(post.media)}" loop playsinline preload="auto"></video>
@@ -2930,16 +3495,33 @@
             </div>
             <button class="icon-button" data-action="preview-fullscreen" aria-label="Tam ekran">${icon("expand")}</button>
           </div>
+          ${mobileOverlayHtml}
+          ${mobileRailHtml}
         </div>
       ` : `
-        <div class="lightbox-media-wrap">
+        <div class="lightbox-media-wrap" data-action="preview-media-tap">
           <img src="${esc(post.media)}" alt="${esc(post.caption || "Önizleme")}">
+          ${mobileOverlayHtml}
+          ${mobileRailHtml}
         </div>
       `;
 
       $("#previewModalBody").innerHTML = `
+        <button class="lightbox-floating-close" data-action="close-preview" aria-label="Önizlemeyi kapat">
+          ${icon("close")}
+        </button>
         ${mediaHtml}
         <div class="lightbox-sidebar">
+          <div class="lightbox-drawer-bar">
+            <div class="lightbox-drawer-pill" data-action="toggle-lightbox-comments"></div>
+            <div class="lightbox-drawer-header">
+              <span class="lightbox-drawer-title">Yorumlar <strong id="lightboxDrawerCount">(${count(post.comments)})</strong></span>
+              <button class="lightbox-drawer-close" data-action="toggle-lightbox-comments" aria-label="Yorumları gizle">
+                ${icon("close")}
+              </button>
+            </div>
+          </div>
+
           <div class="lightbox-sidebar-head">
             <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
               ${user ? profileButton(user) : "<span></span>"}
@@ -2984,8 +3566,8 @@
 
           <div class="lightbox-comment-form-wrap">
             ${state.me ? `
-              <form id="lightboxCommentForm" class="form" style="gap:8px;">
-                <div id="lightboxReplyBarWrap"></div>
+              <form id="lightboxCommentForm" class="form" style="gap:8px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;">
+                <div id="lightboxReplyBarWrap" style="width:100%;box-sizing:border-box;overflow:hidden;"></div>
                 ${state.me.is_admin ? `
                   <div class="comment-as-user-bar">
                     <span class="comment-as-user-badge">${icon("user")} Profil:</span>
@@ -2997,8 +3579,8 @@
                     </div>
                   </div>
                 ` : ""}
-                <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
-                  <input id="lightboxCommentInput" name="body" placeholder="Yorum yaz..." required maxlength="500" style="padding:9px 12px;font-size:12.5px;flex:1;min-width:0;box-sizing:border-box;" autocomplete="off">
+                <div class="lightbox-input-row">
+                  <input id="lightboxCommentInput" name="body" placeholder="Yorum yaz..." required maxlength="500" autocomplete="off">
                   <button class="btn primary small" type="submit" style="flex-shrink:0;">Gönder</button>
                 </div>
               </form>
@@ -3008,6 +3590,12 @@
           </div>
         </div>
       `;
+
+      if (openComments === true) {
+        $("#previewModalBody")?.classList.add("comments-open");
+      } else {
+        $("#previewModalBody")?.classList.remove("comments-open");
+      }
 
       if (!$("#previewModal").open) $("#previewModal").showModal();
 
@@ -3037,6 +3625,10 @@
           });
 
           previewVideo.addEventListener("click", () => {
+            if (window.innerWidth <= 860 && $("#previewModalBody")?.classList.contains("comments-open")) {
+              toggleLightboxComments(false);
+              return;
+            }
             if (previewVideo.paused) previewVideo.play().catch(() => {});
             else previewVideo.pause();
           });
@@ -3085,6 +3677,7 @@
       }
       activePreviewId = null;
       activeLightboxReplyParent = null;
+      $("#previewModalBody")?.classList.remove("comments-open");
       if ($("#previewModal")?.open) $("#previewModal").close();
       resumeVisibleVideo();
     }
@@ -3218,21 +3811,44 @@
     function updateLightboxActions(post) {
       if (!post || !$("#previewModal")?.open || activePreviewId !== post.id) return;
       const row = document.querySelector("#previewModal .lightbox-actions-row");
-      if (!row) return;
-      row.innerHTML = `
-        <button class="action ${post.liked ? "on" : ""}" data-action="like" data-id="${post.id}">
-          <i>${icon("heart")}</i> <span>${count(post.likes)}</span>
-        </button>
-        <button class="action" data-action="preview-comments-focus" data-id="${post.id}">
-          <i>${icon("comment")}</i> <span>${count(post.comments)}</span>
-        </button>
-        <button class="action ${post.saved ? "on" : ""}" data-action="save" data-id="${post.id}">
-          <i>${icon("bookmark")}</i> <span>${post.saved ? "Kayıtlı" : "Kaydet"}</span>
-        </button>
-        <button class="action" data-action="share" data-id="${post.id}">
-          <i>${icon("share")}</i> <span>Paylaş</span>
-        </button>
-      `;
+      if (row) {
+        row.innerHTML = `
+          <button class="action ${post.liked ? "on" : ""}" data-action="like" data-id="${post.id}">
+            <i>${icon("heart")}</i> <span>${count(post.likes)}</span>
+          </button>
+          <button class="action" data-action="preview-comments-focus" data-id="${post.id}">
+            <i>${icon("comment")}</i> <span>${count(post.comments)}</span>
+          </button>
+          <button class="action ${post.saved ? "on" : ""}" data-action="save" data-id="${post.id}">
+            <i>${icon("bookmark")}</i> <span>${post.saved ? "Kayıtlı" : "Kaydet"}</span>
+          </button>
+          <button class="action" data-action="share" data-id="${post.id}">
+            <i>${icon("share")}</i> <span>Paylaş</span>
+          </button>
+        `;
+      }
+      const rail = document.querySelector("#previewModal .lightbox-mobile-rail");
+      if (rail) {
+        const likeBtn = rail.querySelector('[data-action="like"]');
+        if (likeBtn) {
+          likeBtn.classList.toggle("on", Boolean(post.liked));
+          const countEl = likeBtn.querySelector(".lightbox-rail-count");
+          if (countEl) countEl.textContent = count(post.likes);
+        }
+        const saveBtn = rail.querySelector('[data-action="save"]');
+        if (saveBtn) {
+          saveBtn.classList.toggle("on", Boolean(post.saved));
+          const countEl = saveBtn.querySelector(".lightbox-rail-count");
+          if (countEl) countEl.textContent = post.saved ? "Kayıtlı" : "Kaydet";
+        }
+        const commBtn = rail.querySelector('[data-action="toggle-lightbox-comments"]');
+        if (commBtn) {
+          const countEl = commBtn.querySelector(".lightbox-rail-count");
+          if (countEl) countEl.textContent = count(post.comments);
+        }
+      }
+      const drawerCount = document.querySelector("#lightboxDrawerCount");
+      if (drawerCount) drawerCount.textContent = `(${count(post.comments)})`;
     }
 
     function openShareModal(id) {
@@ -3639,8 +4255,8 @@
           ${renderThreadedComments(comments, "modal", postId)}
         </div>
         ${state.me ? `
-          <form id="commentForm" class="form" style="gap:8px;width:100%;box-sizing:border-box;">
-            <div id="modalReplyBarWrap"></div>
+          <form id="commentForm" class="form" style="gap:8px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;">
+            <div id="modalReplyBarWrap" style="width:100%;box-sizing:border-box;overflow:hidden;"></div>
             ${state.me.is_admin ? `
               <div class="comment-as-user-bar" style="width:100%;box-sizing:border-box;">
                 <span class="comment-as-user-badge">${icon("user")} Profil:</span>
@@ -3652,9 +4268,9 @@
                 </div>
               </div>
             ` : ""}
-            <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
-              <textarea id="commentFormBody" name="body" required maxlength="500" placeholder="Bir yorum yaz..." style="width:100%;box-sizing:border-box;min-height:68px;max-height:130px;padding:10px 12px;font-size:13px;border-radius:12px;resize:vertical;"></textarea>
-              <button class="btn primary full" type="submit" style="height:38px;font-size:13px;font-weight:600;">Yorumu Gönder</button>
+            <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:100%;box-sizing:border-box;">
+              <textarea id="commentFormBody" name="body" required maxlength="500" placeholder="Bir yorum yaz..." style="width:100%;max-width:100%;box-sizing:border-box;min-height:68px;max-height:130px;padding:10px 12px;font-size:16px;border-radius:12px;resize:vertical;"></textarea>
+              <button class="btn primary full" type="submit" style="height:38px;font-size:13px;font-weight:600;box-sizing:border-box;max-width:100%;">Yorumu Gönder</button>
             </div>
           </form>
         ` : '<button class="btn primary full" data-action="login">Yorum yazmak için giriş yap</button>'}
@@ -4295,7 +4911,7 @@
           const post = postById(postId);
           if (post) {
             if (post.locked) openCheckout(postId);
-            else openPreviewModal(postId);
+            else openPreviewModal(postId, false);
             return;
           }
         }
@@ -4485,7 +5101,11 @@
             break;
 
           case "comments":
-            await openComments(id);
+            if (window.innerWidth <= 860) {
+              openPreviewModal(id, true);
+            } else {
+              await openComments(id);
+            }
             break;
 
           case "unlock":
@@ -4536,7 +5156,7 @@
             break;
 
           case "preview":
-            openPreviewModal(id);
+            openPreviewModal(id, false);
             break;
 
           case "close-preview":
@@ -4599,8 +5219,24 @@
             break;
           }
 
+          case "toggle-lightbox-comments": {
+            toggleLightboxComments();
+            break;
+          }
+
+          case "preview-media-tap": {
+            if (window.innerWidth <= 860 && $("#previewModalBody")?.classList.contains("comments-open")) {
+              toggleLightboxComments(false);
+            }
+            break;
+          }
+
           case "preview-comments-focus": {
-            document.querySelector("#lightboxCommentForm input")?.focus();
+            if (window.innerWidth <= 860) {
+              toggleLightboxComments(true);
+            } else {
+              document.querySelector("#lightboxCommentForm input")?.focus();
+            }
             break;
           }
 
@@ -4617,7 +5253,7 @@
           }
 
           case "video": {
-            openPreviewModal(id);
+            openPreviewModal(id, false);
             break;
           }
 
