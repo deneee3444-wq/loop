@@ -303,6 +303,8 @@
       overflow-x: auto;
       padding: 6px 2px 20px;
       scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
     }
     .stories::-webkit-scrollbar { display: none; }
     .story {
@@ -463,6 +465,8 @@
       margin: 0 auto 32px auto;
       display: flex;
       flex-direction: column;
+      content-visibility: auto;
+      contain-intrinsic-size: auto 650px;
     }
     .post-head {
       display: flex;
@@ -500,14 +504,13 @@
       background: #0f0f16;
       border: 1px solid #ffffff0f;
       border-radius: var(--radius);
-      isolation: isolate;
-      box-shadow: 0 12px 40px #00000045;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
       cursor: pointer;
-      transition: border-color .2s, box-shadow .2s;
+      transform: translateZ(0);
+      transition: border-color .15s ease;
     }
     .media:hover {
       border-color: #ffffff22;
-      box-shadow: 0 16px 50px #00000070;
     }
     .media > img, .media > video {
       width: 100%;
@@ -515,6 +518,9 @@
       object-fit: contain;
       display: block;
       background: #06060a;
+      transform: translateZ(0);
+    }
+    .media > img {
       transition: transform .25s ease;
     }
     .media:hover > img {
@@ -541,10 +547,9 @@
     }
     .media-top > * { pointer-events: auto; }
     .media-top .pill {
-      background: #00000065;
+      background: rgba(10, 10, 16, 0.78);
       color: white;
-      backdrop-filter: blur(10px);
-      border-color: #ffffff26;
+      border: 1px solid rgba(255, 255, 255, 0.16);
       font-size: 11px;
     }
     .media-top-actions {
@@ -614,9 +619,8 @@
     .volume-control {
       display: flex;
       align-items: center;
-      background: #00000065;
-      backdrop-filter: blur(12px);
-      border: 1px solid #ffffff20;
+      background: rgba(10, 10, 16, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: 30px;
       padding: 0;
       transition: all .2s ease;
@@ -709,12 +713,11 @@
     }
 
     .preview-badge-btn {
-      background: #00000065 !important;
-      backdrop-filter: blur(10px);
+      background: rgba(10, 10, 16, 0.78) !important;
       color: #fff;
     }
     .preview-badge-btn:hover {
-      background: #000000bb !important;
+      background: rgba(20, 20, 30, 0.95) !important;
       color: var(--pink);
     }
 
@@ -774,13 +777,13 @@
       border-radius: 50%;
       width: 43px;
       height: 43px;
-      background: #25252b90;
-      backdrop-filter: blur(10px);
+      background: rgba(22, 22, 32, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       font-style: normal;
-      transition: .18s;
+      transition: transform .18s;
       overflow: visible;
     }
-    .action:hover i { transform: scale(1.08); background: #48484faa; }
+    .action:hover i { transform: scale(1.08); background: rgba(35, 35, 50, 0.95); }
     
     .action svg,
     .lightbox-actions-row .action svg {
@@ -2789,10 +2792,10 @@
       }
     }
     @media (max-width: 720px) {
-      .shell { display: block; overflow-x: hidden; }
+      .shell { display: block; }
       .sidebar { display: none; }
-      .main { padding: 0 14px 90px; max-width: 100%; overflow-x: hidden; }
-      .feed { max-width: 100%; overflow-x: hidden; }
+      .main { padding: 0 14px 90px; width: 100%; max-width: 100%; box-sizing: border-box; }
+      .feed { width: 100%; max-width: 100%; box-sizing: border-box; }
       .topbar { min-height: 67px; gap: 10px; }
       .tabs { gap: 17px; }
       .tab { padding: 23px 0; font-size: 12px; }
@@ -3440,6 +3443,7 @@
 
       activePreviewId = id;
       document.querySelectorAll(".media video").forEach(v => v.pause());
+      activePlayingVideo = null;
 
       const user = author(post.user_id);
       const isVideo = post.kind === "video";
@@ -4079,6 +4083,11 @@
       }
 
       observer.disconnect();
+      visibleVideoRatios.clear();
+      if (activePlayingVideo) {
+        activePlayingVideo.pause();
+        activePlayingVideo = null;
+      }
       $("#feed").innerHTML = posts.length ? posts.map(postCard).join("") : `
         <div class="empty">
           ${icon(route === "saved" ? "bookmark" : "image")}
@@ -4175,24 +4184,64 @@
       </button>`;
     }
 
+    let activePlayingVideo = null;
+    let videoPlayTimer = null;
+    const visibleVideoRatios = new Map();
+
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         const video = entry.target;
-        if (entry.isIntersecting && !$("#modal").open && !document.hidden) {
-          video.play().catch(() => {});
+        if (entry.isIntersecting && entry.intersectionRatio > 0.05) {
+          visibleVideoRatios.set(video, entry.intersectionRatio);
         } else {
-          video.pause();
+          visibleVideoRatios.delete(video);
+          if (video === activePlayingVideo) {
+            video.pause();
+            activePlayingVideo = null;
+          } else if (!video.paused) {
+            video.pause();
+          }
         }
       });
-    }, { threshold: 0.65 });
+
+      clearTimeout(videoPlayTimer);
+      videoPlayTimer = setTimeout(updateFeedVideoPlayback, 120);
+    }, { threshold: [0, 0.25, 0.5, 0.75] });
+
+    function updateFeedVideoPlayback() {
+      if ($("#modal")?.open || $("#previewModal")?.open || document.hidden) {
+        if (activePlayingVideo) {
+          activePlayingVideo.pause();
+          activePlayingVideo = null;
+        }
+        return;
+      }
+
+      let bestVideo = null;
+      let maxRatio = 0.35;
+
+      for (const [video, ratio] of visibleVideoRatios.entries()) {
+        if (ratio > maxRatio) {
+          maxRatio = ratio;
+          bestVideo = video;
+        }
+      }
+
+      if (bestVideo && bestVideo !== activePlayingVideo) {
+        if (activePlayingVideo && activePlayingVideo !== bestVideo) {
+          activePlayingVideo.pause();
+        }
+        activePlayingVideo = bestVideo;
+        bestVideo.play().catch(() => {});
+      } else if (!bestVideo && activePlayingVideo) {
+        activePlayingVideo.pause();
+        activePlayingVideo = null;
+      }
+    }
 
     function resumeVisibleVideo() {
-      if ($("#modal").open || document.hidden) return;
-      document.querySelectorAll(".media video").forEach(video => {
-        const rect = video.getBoundingClientRect();
-        const visible = Math.max(0, Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0));
-        if (visible / rect.height >= .65) video.play().catch(() => {});
-      });
+      clearTimeout(videoPlayTimer);
+      videoPlayTimer = setTimeout(updateFeedVideoPlayback, 60);
     }
 
     document.addEventListener("visibilitychange", () => {
