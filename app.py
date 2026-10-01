@@ -11,6 +11,7 @@ from flask import (
     request, send_from_directory, session
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+import requests
 
 try:
     import psycopg2
@@ -22,8 +23,6 @@ except ImportError:
 BASE = Path(__file__).resolve().parent
 DATA = BASE / "data"
 UPLOADS = DATA / "uploads"
-DATA.mkdir(exist_ok=True)
-UPLOADS.mkdir(exist_ok=True)
 
 # ==============================================================================
 # VERİTABANI BAĞLANTISI (İstediğinde connection string'ini buraya yazabilirsin)
@@ -31,7 +30,17 @@ UPLOADS.mkdir(exist_ok=True)
 # Başında postgresql:// veya postgres:// varsa -> Otomatik algılayıp PostgreSQL'e bağlanır.
 # Örnek: DATABASE_URL = "postgresql://kullanici:sifre@ep-xyz.neon.tech/neondb?sslmode=require"
 # ==============================================================================
-DATABASE_URL = ""
+DATABASE_URL = "postgresql://neondb_owner:npg_tiEGegA3Tk1w@ep-morning-union-b4g1t6uq-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+# ==============================================================================
+# HARİCİ MEDYA DEPOLAMA (PythonAnywhere vb.)
+# Boş bırakırsan ("") -> Medyalar yerel 'data/uploads' klasörüne kaydedilir.
+# Doluysa -> Yüklemeler bu sunucunun /upload adresine gönderilir ve oradan çekilir.
+# ==============================================================================
+STORAGE_URL = "https://storage34.pythonanywhere.com"
+
+# Harici depolama ile Loop uygulaması arasındaki gizli anahtar (token)
+STORAGE_SECRET = "loop_sec_k98f21e7a4b0c6d3e851fa92b"
 
 
 def is_postgres():
@@ -169,6 +178,7 @@ def db():
             raw_conn = psycopg2.connect(dsn)
             g.db = PgConnectionWrapper(raw_conn)
         else:
+            DATA.mkdir(exist_ok=True)
             g.db = sqlite3.connect(DATA / "social.db", timeout=20)
             g.db.row_factory = sqlite3.Row
             g.db.execute("PRAGMA foreign_keys = ON")
@@ -493,12 +503,17 @@ def can_view(post, user=None):
 
 
 def public_user(row):
+    if not row:
+        return None
+    avatar = row["avatar"]
+    if avatar and not str(avatar).startswith("http"):
+        avatar = f"/media/{avatar}"
     return {
         "id": row["id"],
         "username": row["username"],
         "name": row["name"],
         "bio": row["bio"],
-        "avatar": f"/media/{row['avatar']}" if row["avatar"] else None,
+        "avatar": avatar,
         "is_admin": bool(row["is_admin"]),
     }
 
@@ -530,6 +545,40 @@ def store_upload(file, images_only=False):
             description="Desteklenen biçimler: JPG, PNG, WebP, MP4 ve WebM.",
         )
 
+    kind = info[0]
+
+    # Harici medya sunucusu (PythonAnywhere)
+    storage_base = (STORAGE_URL or "").strip().rstrip("/")
+    if storage_base:
+        try:
+            mimetype = file.mimetype or ("video/mp4" if kind == "video" else "image/jpeg")
+            resp = requests.post(
+                f"{storage_base}/upload",
+                headers={"X-Storage-Key": STORAGE_SECRET},
+                files={"file": (file.filename, file.stream, mimetype)},
+                timeout=90,
+            )
+            if resp.status_code not in (200, 201):
+                try:
+                    err_msg = resp.json().get("error", resp.text)
+                except Exception:
+                    err_msg = resp.text
+                abort(502, description=f"Medya depolama sunucusu hatası ({resp.status_code}): {err_msg}")
+
+            data = resp.json()
+            media_url = data.get("url")
+            if not media_url:
+                fname = data.get("filename")
+                if fname:
+                    media_url = f"{storage_base}/uploads/{fname}"
+                else:
+                    abort(502, description="Medya sunucusundan geçerli bir dosya bağlantısı alınamadı.")
+            return media_url, kind
+        except requests.exceptions.RequestException as e:
+            abort(502, description=f"Medya sunucusuna bağlanılamadı ({storage_base}): {e}")
+
+    # Yerel depolama (data/uploads)
+    UPLOADS.mkdir(parents=True, exist_ok=True)
     filename = secrets.token_hex(20) + ext
     destination = UPLOADS / filename
     try:
@@ -537,7 +586,7 @@ def store_upload(file, images_only=False):
     except Exception:
         destination.unlink(missing_ok=True)
         raise
-    return filename, info[0]
+    return filename, kind
 
 
 def create_user(data, avatar=None):
@@ -611,6 +660,9 @@ def state():
 
     for row in rows:
         visible = can_view(row, user)
+        media_val = row["media"]
+        if media_val and not str(media_val).startswith("http"):
+            media_val = f"/media/{media_val}"
         posts.append({
             "id": row["id"],
             "user_id": row["user_id"],
@@ -619,7 +671,7 @@ def state():
             "premium": bool(row["premium"]),
             "price": row["price"],
             "locked": not visible,
-            "media": f"/media/{row['media']}" if visible else None,
+            "media": media_val if visible else None,
             "likes": row["like_count"],
             "comments": row["comment_count"],
             "liked": bool(row["liked"]),
@@ -837,7 +889,7 @@ def admin_profile():
             avatar, _kind = store_upload(file, images_only=True)
         uid = create_user(request.form, avatar)
     except Exception:
-        if avatar:
+        if avatar and not str(avatar).startswith("http") and UPLOADS.exists():
             (UPLOADS / avatar).unlink(missing_ok=True)
         raise
     return jsonify(ok=True, id=uid)
@@ -866,7 +918,8 @@ def admin_post():
         db().commit()
     except Exception:
         db().rollback()
-        (UPLOADS / media).unlink(missing_ok=True)
+        if media and not str(media).startswith("http") and UPLOADS.exists():
+            (UPLOADS / media).unlink(missing_ok=True)
         raise
 
     return jsonify(ok=True)
@@ -878,14 +931,15 @@ def delete_post(post_id):
     post = get_post(post_id)
     db().execute("DELETE FROM posts WHERE id=?", (post_id,))
     db().commit()
-    (UPLOADS / post["media"]).unlink(missing_ok=True)
+    if post["media"] and not str(post["media"]).startswith("http") and UPLOADS.exists():
+        (UPLOADS / post["media"]).unlink(missing_ok=True)
     return jsonify(ok=True)
 
 
 @app.post("/api/admin/reset-db")
 @require_admin
 def reset_db():
-    # 1. Sunucudaki tüm medya dosyalarını sil
+    # 1. Sunucudaki yerel medya dosyalarını sil (eğer varsa)
     if UPLOADS.exists():
         for f in UPLOADS.iterdir():
             if f.is_file():
@@ -894,7 +948,19 @@ def reset_db():
                 except Exception:
                     pass
 
-    # 2. Veritabanındaki tüm tabloları kaldır
+    # 2. Harici depolama aktifse PythonAnywhere'deki medyaları da sıfırla
+    storage_base = (STORAGE_URL or "").strip().rstrip("/")
+    if storage_base:
+        try:
+            requests.post(
+                f"{storage_base}/reset",
+                headers={"X-Storage-Key": STORAGE_SECRET},
+                timeout=15,
+            )
+        except Exception:
+            pass
+
+    # 3. Veritabanındaki tüm tabloları kaldır
     tables = ["unlocks", "comments", "follows", "saves", "likes", "posts", "users"]
     connection = db()
     if is_postgres():
@@ -908,10 +974,10 @@ def reset_db():
         connection.commit()
         connection.execute("PRAGMA foreign_keys = ON")
 
-    # 3. Şemayı ve varsayılan yönetici hesabını ilk günkü gibi yeniden kur
+    # 4. Şemayı ve varsayılan yönetici hesabını ilk günkü gibi yeniden kur
     init_db()
 
-    # 4. Admin oturumunu yenilenen admin kullanıcısına bağla
+    # 5. Admin oturumunu yenilenen admin kullanıcısına bağla
     admin_user = db().execute("SELECT id FROM users WHERE username = 'admin'").fetchone()
     if admin_user:
         session["uid"] = admin_user["id"]
@@ -938,6 +1004,9 @@ def media(filename):
             abort(404, description="Dosya bulunamadı.")
         if not can_view(post):
             abort(403, description="Bu içeriğe erişim iznin yok.")
+
+    if not UPLOADS.exists():
+        abort(404, description="Dosya bulunamadı.")
 
     return send_from_directory(
         str(UPLOADS), filename, conditional=True, max_age=0
