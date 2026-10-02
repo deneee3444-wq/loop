@@ -423,9 +423,9 @@ def security_headers(response):
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: blob:; "
-        "media-src 'self' blob:; "
-        "connect-src 'self'; "
+        "img-src 'self' data: blob: https:; "
+        "media-src 'self' blob: https:; "
+        "connect-src 'self' https:; "
         "object-src 'none'; "
         "base-uri 'self'; "
         "frame-ancestors 'none'; "
@@ -535,14 +535,17 @@ def store_upload(file, images_only=False):
             "image",
             head[:4] == b"RIFF" and head[8:12] == b"WEBP",
         ),
-        ".mp4": ("video", head[4:8] == b"ftyp"),
+        ".gif": ("image", head.startswith(b"GIF87a") or head.startswith(b"GIF89a")),
+        ".mp4": ("video", head[4:8] in (b"ftyp", b"moov", b"wide", b"mdat")),
+        ".m4v": ("video", head[4:8] in (b"ftyp", b"moov", b"wide", b"mdat")),
+        ".mov": ("video", head[4:8] in (b"ftyp", b"moov", b"wide", b"mdat", b"free") or b"qt  " in head[:16]),
         ".webm": ("video", head.startswith(b"\x1a\x45\xdf\xa3")),
     }
     info = formats.get(ext)
     if not info or not info[1] or (images_only and info[0] != "image"):
         abort(
             400,
-            description="Desteklenen biçimler: JPG, PNG, WebP, MP4 ve WebM.",
+            description="Desteklenen biçimler: JPG, PNG, WebP, GIF, MP4, WebM ve MOV.",
         )
 
     kind = info[0]
