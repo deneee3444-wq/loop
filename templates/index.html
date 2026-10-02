@@ -1028,7 +1028,7 @@
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
     dialog.wide { width: min(800px, calc(100vw - 28px)); }
-    dialog::backdrop { background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(14px); }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.85); }
     .modal-head {
       padding: 18px 24px;
       display: flex;
@@ -1044,6 +1044,8 @@
       padding: 24px;
       overflow-y: auto;
       overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: auto;
       flex: 1;
       min-height: 0;
     }
@@ -1807,7 +1809,7 @@
       min-height: 0;
       overflow: hidden;
     }
-    .lightbox-media-wrap img, .lightbox-media-wrap video {
+    .lightbox-media-wrap > img, .lightbox-media-wrap > video {
       max-width: 100%;
       max-height: 100%;
       width: 100%;
@@ -2403,8 +2405,8 @@
         overflow: hidden !important;
         box-sizing: border-box !important;
       }
-      .lightbox-media-wrap img,
-      .lightbox-media-wrap video {
+      .lightbox-media-wrap > img,
+      .lightbox-media-wrap > video {
         width: 100% !important;
         height: 100% !important;
         object-fit: contain !important;
@@ -2452,6 +2454,40 @@
         gap: 9px !important;
         min-width: 0 !important;
         max-width: 100% !important;
+      }
+      .lightbox-mobile-author-btn {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 9px !important;
+        cursor: pointer !important;
+        color: inherit !important;
+        min-width: 0 !important;
+        text-align: left !important;
+      }
+      .lightbox-mobile-author .avatar {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        max-width: 36px !important;
+        max-height: 36px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        flex-shrink: 0 !important;
+        display: block !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+      }
+      .lightbox-mobile-author .avatar.avatar-fallback {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
       }
       .lightbox-mobile-author-meta {
         display: flex !important;
@@ -2613,19 +2649,18 @@
         max-width: 100% !important;
         height: 65dvh !important;
         max-height: 72dvh !important;
-        background: #101018fa !important;
-        backdrop-filter: blur(28px) !important;
-        -webkit-backdrop-filter: blur(28px) !important;
+        background: #101018 !important;
         border-top-left-radius: 20px !important;
         border-top-right-radius: 20px !important;
         border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-left: none !important;
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.85) !important;
+        box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.75) !important;
         z-index: 70 !important;
         display: flex !important;
         flex-direction: column !important;
         transform: translateY(100%);
-        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        will-change: transform;
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
         min-height: 0 !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
@@ -3268,7 +3303,7 @@
       return result;
     }
 
-    function avatar(user, extra = "") {
+    function avatar(user, extra = "", allowViewAvatar = false) {
       const src = user?.avatar
         ? (user.avatar.startsWith("/media/") || user.avatar.startsWith("http")
             ? user.avatar
@@ -3276,7 +3311,7 @@
         : null;
       const rawName = (user?.name || user?.username || "?").trim();
       const initial = (rawName.charAt(0) || "?").toLocaleUpperCase("tr-TR");
-      const uid = user?.id ? `data-action="view-avatar" data-id="${user.id}" title="${esc(rawName)} - Profil fotoğrafını büyüt"` : "";
+      const uid = (allowViewAvatar && user?.id) ? `data-action="view-avatar" data-id="${user.id}" title="${esc(rawName)} - Profil fotoğrafını büyüt"` : "";
       if (src) {
         return `<img class="avatar ${extra}" src="${esc(src)}" alt="${esc(rawName)}" loading="lazy" ${uid}>`;
       }
@@ -3285,7 +3320,7 @@
 
     function openAvatarModal(id) {
       const numId = Number(id);
-      const user = author(numId) || (state.me?.id === numId ? state.me : null);
+      const user = author(numId);
       if (!user) return;
 
       const src = user.avatar
@@ -3320,8 +3355,14 @@
       `);
     }
 
-    const author = id => state.profiles.find(user => user.id === id);
-    const postById = id => state.posts.find(post => post.id === id);
+    const author = id => {
+      const numId = Number(id);
+      return state.profiles.find(user => user.id === numId) || (state.me?.id === numId ? state.me : null);
+    };
+    const postById = id => {
+      const numId = Number(id);
+      return state.posts.find(post => post.id === numId);
+    };
 
     function profileButton(user) {
       return `<button class="profile-link" data-action="profile" data-id="${user.id}">
@@ -3459,11 +3500,13 @@
       const mobileOverlayHtml = `
         <div class="lightbox-mobile-overlay">
           <div class="lightbox-mobile-author">
-            ${user ? avatar(user, "mini") : ""}
-            <div class="lightbox-mobile-author-meta">
-              <strong class="lightbox-mobile-author-name">${esc(user?.name || "LOOP")}</strong>
-              <small class="lightbox-mobile-author-user">@${esc(user?.username || "")}</small>
-            </div>
+            <button class="lightbox-mobile-author-btn" data-action="profile" data-id="${user?.id}">
+              ${user ? avatar(user, "mini", false) : ""}
+              <div class="lightbox-mobile-author-meta">
+                <strong class="lightbox-mobile-author-name">${esc(user?.name || "LOOP")}</strong>
+                <small class="lightbox-mobile-author-user">@${esc(user?.username || "")}</small>
+              </div>
+            </button>
             ${followBtn}
           </div>
           ${post.caption ? `<p class="lightbox-mobile-caption">${esc(post.caption)}</p>` : ""}
@@ -3757,19 +3800,24 @@
 
     function renderCommentItem(c, target, postId, isReply = false) {
       const isOwnerOrAdmin = (state.me?.is_admin || state.me?.id === c.user_id);
+      const commentUser = { id: c.user_id, name: c.name, username: c.username, avatar: c.avatar };
       return `
         <div class="comment ${isReply ? 'comment-reply' : ''}" style="padding:${isReply ? '4px 0' : '8px 0'};display:flex;gap:${isReply ? '7px' : '9px'};align-items:flex-start;width:100%;box-sizing:border-box;">
-          ${avatar(c, isReply ? "mini" : "")}
+          <button class="comment-author-avatar-btn" data-action="profile" data-id="${c.user_id}" style="background:none;border:none;padding:0;margin:0;cursor:pointer;flex-shrink:0;">
+            ${avatar(commentUser, isReply ? "mini" : "", false)}
+          </button>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;width:100%;">
               <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0;flex:1;">
-                <strong style="font-size:${isReply ? '11.5px' : '12px'};color:#f4f4f5;line-height:1.2;">${esc(c.name)}</strong>
-                ${c.reply_to_username ? `
-                  <span class="comment-reply-arrow" style="font-size:10px;">›</span>
-                  <span class="comment-reply-badge" style="font-size:10px;">@${esc(c.reply_to_username)}</span>
-                ` : `
-                  <small style="font-size:10px;color:var(--muted);">@${esc(c.username)}</small>
-                `}
+                <button class="comment-author-name-btn" data-action="profile" data-id="${c.user_id}" style="background:none;border:none;padding:0;margin:0;cursor:pointer;text-align:left;display:inline-flex;align-items:center;gap:4px;">
+                  <strong style="font-size:${isReply ? '11.5px' : '12px'};color:#f4f4f5;line-height:1.2;">${esc(c.name)}</strong>
+                  ${c.reply_to_username ? `
+                    <span class="comment-reply-arrow" style="font-size:10px;color:var(--muted);">›</span>
+                    <span class="comment-reply-badge" style="font-size:10px;color:#c084fc;">@${esc(c.reply_to_username)}</span>
+                  ` : `
+                    <small style="font-size:10px;color:var(--muted);">@${esc(c.username)}</small>
+                  `}
+                </button>
                 <small style="font-size:10px;color:var(--muted);margin-left:2px;">${esc(c.created_at?.slice(0, 10) || "")}</small>
               </div>
               <div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">
@@ -4049,19 +4097,19 @@
 
       if (route === "profile") {
         const user = author(profileId);
-        posts = posts.filter(post => post.user_id === profileId);
+        posts = posts.filter(post => post.user_id === Number(profileId));
 
         if (user) {
           $("#pageTitle").textContent = `@${user.username}`;
           $("#profileBanner").innerHTML = `
             <div class="profile-banner">
-              ${avatar(user)}
+              ${avatar(user, "", true)}
               <h2>${esc(user.name)}</h2>
               <small>@${esc(user.username)}</small>
               <p>${esc(user.bio || "Bu profil henüz bir biyografi eklememiş.")}</p>
               <div class="stats">
-                <span><strong>${user.post_count}</strong> paylaşım</span>
-                <span><strong>${user.followers}</strong> takipçi</span>
+                <span><strong>${user.post_count ?? 0}</strong> paylaşım</span>
+                <span><strong>${user.followers ?? 0}</strong> takipçi</span>
               </div>
               ${state.me?.id !== user.id
                 ? `<button class="btn ${user.following ? "" : "primary"}" data-action="follow" data-id="${user.id}">
@@ -5024,8 +5072,11 @@
             break;
 
           case "profile":
-            if (author(id)) {
-              navigate("profile", id);
+            const targetUser = author(id);
+            if (targetUser) {
+              if ($("#previewModal")?.open) closePreviewModal();
+              if ($("#modal")?.open) closeModal();
+              navigate("profile", targetUser.id);
             } else {
               toast("Profil bulunamadı.");
             }
@@ -5916,3 +5967,4 @@
   </script>
 </body>
 </html>
+
